@@ -10,7 +10,7 @@ data "aws_ami" "base" {
 
 resource "aws_launch_template" "app" {
   name_prefix   = "${var.project_name}-lt-"
-  image_id      = data.aws_ami.base.id # TODO: swap for Packer-built custom AMI later
+  image_id = "ami-0914fc41eb898520a"
   instance_type = "t3.micro"
 
   iam_instance_profile {
