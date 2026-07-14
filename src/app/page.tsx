@@ -13,7 +13,7 @@ export default function Home() {
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-6 py-20 md:grid-cols-2 md:py-28">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-brass">
-              Est..
+              Est. Wristly Watch Co.
             </p>
             <h1 className="mt-4 font-display text-5xl leading-[1.05] text-foreground md:text-6xl">
               Time, made to be <em className="not-italic text-brass">kept</em>.
