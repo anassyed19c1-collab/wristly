@@ -21,9 +21,10 @@ resource "aws_launch_template" "app" {
 
   user_data = base64encode(<<-EOF
     #!/bin/bash
-    # Temporary bootstrap script — this logic moves into the Packer AMI later
-    dnf install -y nodejs npm
-    npm install -g pm2
+    cd /home/ec2-user/app
+    echo "DATABASE_URL=${var.database_url}" > .env.local
+    sudo -u ec2-user pm2 start npm --name wristly -- start -- -p 3000
+    sudo -u ec2-user pm2 save
   EOF
   )
 

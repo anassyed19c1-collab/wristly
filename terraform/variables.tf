@@ -18,3 +18,8 @@ variable "db_password" {
 variable "alert_email" {
   description = "Email to receive CloudWatch alarm notifications"
 }
+
+variable "database_url" {
+  description = "Full MySQL connection string for RDS"
+  sensitive   = true
+}

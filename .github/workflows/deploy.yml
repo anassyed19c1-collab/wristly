@@ -1,0 +1,77 @@
+name: Build and Deploy Wristly
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npx eslint src --quiet
+
+      - name: Build check
+        run: npm run build
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "1.15.4"
+
+      - name: Packer init
+        working-directory: ./packer
+        run: packer init app.pkr.hcl
+
+      - name: Build new AMI
+        working-directory: ./packer
+        run: packer build -machine-readable app.pkr.hcl | tee build.log
+
+      - name: Extract new AMI ID
+        working-directory: ./packer
+        id: ami
+        run: |
+          AMI_ID=$(grep 'artifact,0,id' build.log | cut -d',' -f6 | cut -d':' -f2)
+          echo "ami_id=$AMI_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Create new Launch Template version
+        run: |
+          aws ec2 create-launch-template-version \
+            --launch-template-name wristly-lt-20260714053114980400000001 \
+            --source-version '$Latest' \
+            --launch-template-data '{"ImageId":"${{ steps.ami.outputs.ami_id }}"}'
+
+      - name: Set new version as default
+        run: |
+          aws ec2 modify-launch-template \
+            --launch-template-name wristly-lt-20260714053114980400000001 \
+            --default-version '$Latest'
+
+      - name: Trigger instance refresh
+        run: |
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name wristly-asg \
+            --preferences '{"MinHealthyPercentage":50,"InstanceWarmup":300}'
